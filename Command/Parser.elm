@@ -1,5 +1,7 @@
 module Command.Parser exposing(parseInput)
 
+import Direction exposing(..)
+import LookAt exposing(..) 
 import Command exposing(..)
 import Regex exposing (..)
 import Maybe exposing (..)

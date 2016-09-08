@@ -1,9 +1,6 @@
-module Command exposing(Command(..), Direction(..), LookAt(..))
+module Command exposing(Command(..))
 
-import Item
-
-type Direction = North | South | East | West | NorthEast | SouthEast | NorthWest | SouthWest
-
-type LookAt = Place | Item Item.ItemId
+import Direction exposing(..)
+import LookAt exposing(..)
 
 type Command = Go Direction |Look  LookAt
