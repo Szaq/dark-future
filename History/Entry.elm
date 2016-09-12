@@ -1,20 +1,39 @@
-module History.Entry exposing(EntryType(..), Model, Msg, view, information)
+module History.Entry exposing (EntryType(..), Model, Msg, view, information)
 
-import Html exposing(..)
+import Html exposing (..)
 import Time
-import String exposing(..)
+import String exposing (..)
 
-type EntryType = Speech | Information | Event
 
-type alias Model = {date: Time.Time, text: String, entryType: EntryType}
+type EntryType
+    = Speech
+    | Information
+    | Event
 
-type Msg = None
 
-view: Model -> Html Msg
-view model = let displayLine line =  [div [] [text line]]
-                 displayLines lines = List.map displayLine lines |> List.concat
-                 lines = split "\n" model.text
-             in div [] (displayLines lines)
+type alias Model =
+    { date : Time.Time, text : String, entryType : EntryType }
 
-information: String -> Model
-information text = Model 0 text Information
+
+type Msg
+    = None
+
+
+view : Model -> Html Msg
+view model =
+    let
+        displayLine line =
+            [ div [] [ text line ] ]
+
+        displayLines lines =
+            List.map displayLine lines |> List.concat
+
+        lines =
+            split "\n" model.text
+    in
+        div [] (displayLines lines)
+
+
+information : String -> Model
+information text =
+    Model 0 text Information
