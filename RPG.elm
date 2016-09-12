@@ -5,6 +5,7 @@ import Html exposing (..)
 import Character
 import String
 import Location
+import Direction exposing(..)
 import Dict exposing (..)
 import History
 import History.Entry as HistoryEntry
@@ -16,7 +17,7 @@ import Command.Parser
 
 
 main : Program Never
-main =  
+main =
     App.beginnerProgram { model = model, view = view, update = update }
 
 
@@ -30,13 +31,12 @@ type alias Model =
 
 
 model : Model
-model =
-    Model (Character.Model "Szaq" Character.Human)
-        [ HistoryEntry.information "Welcome in the madness" ]
-        ""
-        0
-        (singleton 0 <| Location.Model "Your Room" "Your very personal room, which you like" [])
-
+model = let locations = (Dict.insert 0 <| Location.Model "South Room" "Your very personal room in the south, which you like" [(Direction.North,1)])
+                        <| (Dict.insert 1 <| Location.Model "North Room" "Your very personal room in the north, which you like" [(Direction.South,0)])
+                        <| Dict.empty
+            player = Character.Model "Szaq" Character.Human
+            initialHistory = [ HistoryEntry.information "Welcome in the madness" ]
+        in Model player initialHistory "" 0 locations
 
 type Msg
     = History History.Msg
@@ -94,13 +94,30 @@ handleCommand : Command.Command -> Model -> Model
 handleCommand command model =
     case command of
         Command.Go direction ->
-            addInformationToHistory model <| "You went " ++ toString direction
+            goTo direction model
 
         Command.Look at ->
             lookAt at model
             |> addInformationToHistory model
 
 
+
+------------------------------------------------------------------
+---------------------------Command Handling ----------------------
+------------------------------------------------------------------
+
+lookAt: LookAt -> Model -> String
+lookAt at model = case at of
+          Place  -> describeLocation (Dict.get model.currentLocation model.locations)
+          Item item -> describeItem item
+
+goTo: Direction -> Model -> Model
+goTo direction model = case exitInCurrentLocation direction model of
+                        Just id -> let modelWithNewLocation = {model | currentLocation = id}
+                                       location = currentLocation modelWithNewLocation
+                                       description = describeLocation location
+                                    in addInformationToHistory modelWithNewLocation description
+                        Nothing -> model
 
 ------------------------------------------------------------------
 ---------------------------Output Utils  -------------------------
@@ -115,11 +132,6 @@ addInformationToHistory model text =
     in
         { model | history = History.update (History.Add historyEntry) model.history }
 
-lookAt: LookAt -> Model -> String
-lookAt at model = case at of
-          Place  -> describeLocation (get model.currentLocation model.locations)
-          Item item -> describeItem item
-
 describeLocation : Maybe Location.Model -> String
 describeLocation location = case location of
     Just location -> location.description ++ "\n\nExits: " ++ (String.join ", " (List.map (fst>>toString) location.exits))
@@ -127,3 +139,17 @@ describeLocation location = case location of
 
 describeItem: Item.Model -> String
 describeItem item = "This is " ++ item.name ++ "\n\n" ++ item.description
+
+------------------------------------------------------------------
+--------------------------- Model Helpers ------------------------
+------------------------------------------------------------------
+
+{-| Get current location from model -}
+currentLocation: Model -> Maybe Location.Model
+currentLocation model = Dict.get model.currentLocation model.locations
+
+{-| Get an exist in specified direction from current location from model -}
+exitInCurrentLocation: Direction -> Model -> Maybe Location.Id
+exitInCurrentLocation direction model = case currentLocation model of
+                                          Just location -> Direction.get direction location.exits
+                                          Nothing -> Nothing
