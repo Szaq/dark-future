@@ -2,6 +2,7 @@ module Location exposing (Model, Id)
 
 import Direction exposing (..)
 import Item
+import Character
 
 
 type alias Id =
@@ -13,4 +14,5 @@ type alias Model =
     , description : String
     , exits : DirectionMap Id
     , items : List Item.Model
+    , characters : List Character.Model 
     }

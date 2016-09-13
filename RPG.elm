@@ -22,10 +22,9 @@ main =
 
 
 type alias Model =
-    { player : Character.Model
+    { playerId : (Location.Id, Character.Id)
     , history : History.Model
     , input : Input.Model
-    , currentLocation : Location.Id
     , locations : Dict Location.Id Location.Model
     }
 
@@ -33,18 +32,19 @@ type alias Model =
 model : Model
 model =
     let
+        player =
+            Character.Model "24242-2342342-2342342-32" "Szaq" Character.Human [] Character.ThisPlayer
         locations =
-            (Dict.insert 0 <| Location.Model "South Room" "Your very personal room in the south, which you like" [ ( Direction.North, 1 ) ] [ Item.Model "Candle" "Ordinary candle making light where is darkness" ]) <|
-                (Dict.insert 1 <| Location.Model "North Room" "Your very personal room in the north, which you like" [ ( Direction.South, 0 ) ] []) <|
+            (Dict.insert 0 <| Location.Model "South Room" "Your very personal room in the south, which you like" [ ( Direction.North, 1 ) ] [ Item.Model "Candle" "Ordinary candle making light where is darkness" ] [player]) <|
+                (Dict.insert 1 <| Location.Model "North Room" "Your very personal room in the north, which you like" [ ( Direction.South, 0 ) ] [] []) <|
                     Dict.empty
 
-        player =
-            Character.Model "Szaq" Character.Human []
+        
 
         initialHistory =
             [ HistoryEntry.information "Welcome in the madness" ]
     in
-        Model player initialHistory "" 0 locations
+        Model (0, "24242-2342342-2342342-32") initialHistory "" locations
 
 
 type Msg
@@ -63,12 +63,15 @@ update msg model =
 
 
 view : Model -> Html Msg
-view model =
-    div []
-        [ text <| "Welcome " ++ model.player.name ++ " , it seems you're " ++ toString model.player.race
-        , App.map History <| History.view model.history
-        , App.map Input <| Input.view model.input
-        ]
+view model = let player = currentPlayer model
+                 playerRace = player |> Maybe.map (.race >> toString) |> Maybe.withDefault "--Unknown--"
+                 playerName = player |> Maybe.map .name |> Maybe.withDefault "--Unknown--"
+            in
+                div []
+                    [ text <| "Welcome " ++ playerName ++ " , it seems you're " ++ playerRace
+                    , App.map History <| History.view model.history
+                    , App.map Input <| Input.view model.input
+                    ]
 
 
 
@@ -120,7 +123,7 @@ lookAt : LookAt -> Model -> String
 lookAt at model =
     case at of
         Place ->
-            describeLocation (Dict.get model.currentLocation model.locations)
+            describeLocation (currentLocation model)
 
         Item name ->
             let
@@ -134,18 +137,44 @@ lookAt at model =
 goTo : Direction -> Model -> Model
 goTo direction model =
     case exitInCurrentLocation direction model of
-        Just id ->
+        Just newLocationId ->
             let
-                modelWithNewLocation =
-                    { model | currentLocation = id }
+                playerId = 
+                    snd model.playerId
 
-                location =
-                    currentLocation modelWithNewLocation
+                oldLocationId = 
+                    fst model.playerId
+
+                oldLocation = 
+                    Dict.get oldLocationId model.locations
+
+                newLocation = 
+                    Dict.get newLocationId model.locations
+
+                player = 
+                    oldLocation `Maybe.andThen` characterInLocation playerId
+
+                updatedOldLocation = 
+                    Maybe.map (\location -> {location | characters = List.filter (\character -> character.id == playerId) location.characters}) oldLocation
+
+                updatedNewLocation =
+                    Maybe.map2 (\location player -> Just {location | characters =  location.characters ++ [player]}) newLocation player
+                    |> Maybe.withDefault Nothing
+                     
+
+                updatedLocations = Maybe.map2 
+                    (\new old -> Dict.insert newLocationId new model.locations |> 
+                    Dict.insert oldLocationId old) updatedNewLocation updatedOldLocation
+
+
+                modelWithNewLocation =
+                    Maybe.map (\updatedLocations -> { model | playerId = (newLocationId, playerId), locations = updatedLocations }) updatedLocations
 
                 description =
-                    describeLocation location
+                    describeLocation (modelWithNewLocation `Maybe.andThen` currentLocation) 
             in
-                addInformationToHistory modelWithNewLocation description
+                Maybe.map (\modelWithNewLocation -> addInformationToHistory modelWithNewLocation description) modelWithNewLocation
+                |> Maybe.withDefault model
 
         Nothing ->
             model
@@ -177,6 +206,9 @@ describeLocation location =
                 itemsDesc =
                     String.join ", " <| List.map .name location.items
 
+                charactersDesc =
+                    String.join ", " <| List.map .name location.characters
+
                 exitsDesc =
                     String.join ", " <| List.map (toString << fst) location.exits
             in
@@ -195,9 +227,26 @@ describeItem item =
     "This is " ++ item.name ++ "\n" ++ item.description
 
 
+------------------------------------------------------------------
+--------------------------- Player Helpers ------------------------
+------------------------------------------------------------------
+
+currentPlayer: Model -> Maybe Character.Model
+currentPlayer model = let
+                         location = Dict.get (fst model.playerId) model.locations
+                         in
+                         location `Maybe.andThen` (characterInLocation <| snd model.playerId)
+
+selectCharacter: Character.Id -> Character.Model -> Maybe Character.Model
+selectCharacter id character =  if character.id == id then
+                                    Just character
+                                    else 
+                                    Nothing
+characterInLocation: Character.Id -> Location.Model -> Maybe Character.Model
+characterInLocation id location = Maybe.oneOf <| List.map (selectCharacter id) location.characters
 
 ------------------------------------------------------------------
---------------------------- Model Helpers ------------------------
+--------------------------- Location Helpers ------------------------
 ------------------------------------------------------------------
 
 
@@ -205,7 +254,12 @@ describeItem item =
 -}
 currentLocation : Model -> Maybe Location.Model
 currentLocation model =
-    Dict.get model.currentLocation model.locations
+    Dict.get (fst model.playerId) model.locations
+
+
+------------------------------------------------------------------
+--------------------------- Exit Helpers ------------------------
+------------------------------------------------------------------
 
 
 {-| Get an exist in specified direction from current location from model
@@ -218,6 +272,12 @@ exitInCurrentLocation direction model =
 
         Nothing ->
             Nothing
+
+
+------------------------------------------------------------------
+--------------------------- Items Helpers ------------------------
+------------------------------------------------------------------
+
 
 {-| Select item by name from items list-}
 selectItem : String -> List Item.Model -> Maybe Item.Model
@@ -260,4 +320,4 @@ itemInCharacterInventory name character =
 -}
 itemInPlayerInventory : String -> Model -> Maybe Item.Model
 itemInPlayerInventory name model =
-    itemInCharacterInventory name model.player
+    currentPlayer model `Maybe.andThen` itemInCharacterInventory name
