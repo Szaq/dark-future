@@ -23,7 +23,7 @@ view : Model -> Html Msg
 view model =
     let
         displayLine line =
-            [ div [] [ text line ] ]
+            [ div [] [ text line ], br [][] ]
 
         displayLines lines =
             List.map displayLine lines |> List.concat

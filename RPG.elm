@@ -34,7 +34,7 @@ model : Model
 model =
     let
         locations =
-            (Dict.insert 0 <| Location.Model "South Room" "Your very personal room in the south, which you like" [ ( Direction.North, 1 ) ] []) <|
+            (Dict.insert 0 <| Location.Model "South Room" "Your very personal room in the south, which you like" [ ( Direction.North, 1 ) ] [ Item.Model "Candle" "Ordinary candle making light where is darkness" ]) <|
                 (Dict.insert 1 <| Location.Model "North Room" "Your very personal room in the north, which you like" [ ( Direction.South, 0 ) ] []) <|
                     Dict.empty
 
@@ -122,8 +122,13 @@ lookAt at model =
         Place ->
             describeLocation (Dict.get model.currentLocation model.locations)
 
-        Item item ->
-            describeItem item
+        Item name ->
+            let
+                item =
+                    Maybe.oneOf [ itemInCurrentLocation name model
+                                , itemInPlayerInventory name model ]
+            in
+                Maybe.map describeItem item |> Maybe.withDefault "Oh sorry. No such thing"
 
 
 goTo : Direction -> Model -> Model
@@ -165,7 +170,21 @@ describeLocation : Maybe Location.Model -> String
 describeLocation location =
     case location of
         Just location ->
-            location.description ++ "\n\nExits: " ++ (String.join ", " (List.map (fst >> toString) location.exits))
+            let
+                desc =
+                    location.description
+
+                itemsDesc =
+                    String.join ", " <| List.map .name location.items
+
+                exitsDesc =
+                    String.join ", " <| List.map (toString << fst) location.exits
+            in
+                desc
+                    ++ "\nItems: "
+                    ++ itemsDesc
+                    ++ "\nExits: "
+                    ++ exitsDesc
 
         Nothing ->
             "No such thing"
@@ -173,7 +192,7 @@ describeLocation location =
 
 describeItem : Item.Model -> String
 describeItem item =
-    "This is " ++ item.name ++ "\n\n" ++ item.description
+    "This is " ++ item.name ++ "\n" ++ item.description
 
 
 
@@ -199,3 +218,46 @@ exitInCurrentLocation direction model =
 
         Nothing ->
             Nothing
+
+{-| Select item by name from items list-}
+selectItem : String -> List Item.Model -> Maybe Item.Model
+selectItem name items =
+    let
+        selectItem name item =
+            if (String.toLower item.name) == (String.toLower name) then
+                Just item
+            else
+                Nothing
+    in
+        Maybe.oneOf <| List.map (selectItem name) items
+
+
+
+{-| Get item by name from a location
+-}
+itemInLocation : String -> Location.Model -> Maybe Item.Model
+itemInLocation name location =
+    selectItem name location.items
+
+
+{-| Get item by name from a current location
+-}
+itemInCurrentLocation : String -> Model -> Maybe Item.Model
+itemInCurrentLocation name model =
+    let
+        location =
+            currentLocation model
+    in
+        location `Maybe.andThen` itemInLocation name
+
+{-| Get item by name from some character's inventory
+-}
+itemInCharacterInventory : String -> Character.Model -> Maybe Item.Model
+itemInCharacterInventory name character =
+    selectItem name character.items
+
+{-| Get item by name from player's inventory
+-}
+itemInPlayerInventory : String -> Model -> Maybe Item.Model
+itemInPlayerInventory name model =
+    itemInCharacterInventory name model.player
