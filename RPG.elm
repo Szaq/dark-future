@@ -4,7 +4,7 @@ import Html.App as App
 import Html exposing (..)
 import Character
 import String
-import Location
+import Location exposing (..)
 import Direction exposing (..)
 import Dict exposing (..)
 import History
@@ -145,27 +145,7 @@ goTo direction model =
                 oldLocationId = 
                     fst model.playerId
 
-                oldLocation = 
-                    Dict.get oldLocationId model.locations
-
-                newLocation = 
-                    Dict.get newLocationId model.locations
-
-                player = 
-                    oldLocation `Maybe.andThen` characterInLocation playerId
-
-                updatedOldLocation = 
-                    Maybe.map (\location -> {location | characters = List.filter (\character -> character.id == playerId) location.characters}) oldLocation
-
-                updatedNewLocation =
-                    Maybe.map2 (\location player -> Just {location | characters =  location.characters ++ [player]}) newLocation player
-                    |> Maybe.withDefault Nothing
-                     
-
-                updatedLocations = Maybe.map2 
-                    (\new old -> Dict.insert newLocationId new model.locations |> 
-                    Dict.insert oldLocationId old) updatedNewLocation updatedOldLocation
-
+                updatedLocations = locationsWithMovedCharacter playerId oldLocationId newLocationId model.locations
 
                 modelWithNewLocation =
                     Maybe.map (\updatedLocations -> { model | playerId = (newLocationId, playerId), locations = updatedLocations }) updatedLocations
@@ -174,7 +154,7 @@ goTo direction model =
                     describeLocation (modelWithNewLocation `Maybe.andThen` currentLocation) 
             in
                 Maybe.map (\modelWithNewLocation -> addInformationToHistory modelWithNewLocation description) modelWithNewLocation
-                |> Maybe.withDefault model
+                |> Maybe.withDefault (addInformationToHistory model "You can't go there")
 
         Nothing ->
             model
@@ -236,14 +216,6 @@ currentPlayer model = let
                          location = Dict.get (fst model.playerId) model.locations
                          in
                          location `Maybe.andThen` (characterInLocation <| snd model.playerId)
-
-selectCharacter: Character.Id -> Character.Model -> Maybe Character.Model
-selectCharacter id character =  if character.id == id then
-                                    Just character
-                                    else 
-                                    Nothing
-characterInLocation: Character.Id -> Location.Model -> Maybe Character.Model
-characterInLocation id location = Maybe.oneOf <| List.map (selectCharacter id) location.characters
 
 ------------------------------------------------------------------
 --------------------------- Location Helpers ------------------------
