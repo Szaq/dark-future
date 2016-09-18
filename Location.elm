@@ -3,7 +3,9 @@ module Location exposing (..)
 import Direction exposing (..)
 import Item
 import Character
+import Character.Structures exposing(..)
 import Dict
+import Time
 
 
 type alias Id =
@@ -19,16 +21,16 @@ type alias Model =
     , description : String
     , exits : DirectionMap Id
     , items : List Item.Model
-    , characters : List Character.Model
+    , characters : List Character.Structures.Model
     }
 
 
-locationWithAddedCharacter : Character.Model -> Model -> Model
+locationWithAddedCharacter : Character.Structures.Model -> Model -> Model
 locationWithAddedCharacter character location =
     { location | characters = location.characters ++ [ character ] }
 
 
-locationWithRemovedCharacter : Character.Model -> Model -> Model
+locationWithRemovedCharacter : Character.Structures.Model -> Model -> Model
 locationWithRemovedCharacter character location =
     let
         notEqual evaluatedCharacter =
@@ -37,7 +39,7 @@ locationWithRemovedCharacter character location =
         { location | characters = List.filter notEqual location.characters }
 
 
-locationsWithMovedCharacter : Character.Id -> Id -> Id -> Locations -> Maybe (Locations)
+locationsWithMovedCharacter : Character.Structures.Id -> Id -> Id -> Locations -> Maybe (Locations)
 locationsWithMovedCharacter characterId oldLocationId newLocationId locations =
     let
         oldLocation =
@@ -64,14 +66,27 @@ locationsWithMovedCharacter characterId oldLocationId newLocationId locations =
             updatedOldLocation
 
 
-selectCharacter : Character.Id -> Character.Model -> Maybe Character.Model
+locationsAfterTickInLocation: Time.Time -> Id -> Locations -> Locations
+locationsAfterTickInLocation time id locations =
+      let updatedLocation = Maybe.map (locationAfterTick time) (Dict.get id locations)
+
+      in  Maybe.map (\location -> Dict.insert id location locations) updatedLocation
+          |> Maybe.withDefault locations
+
+locationAfterTick: Time.Time -> Model -> Model
+locationAfterTick time location =
+    let characterTick character = Character.update (Character.Structures.Tick time) character
+    in { location | characters = List.map (fst << characterTick) location.characters }
+
+
+selectCharacter : Character.Structures.Id -> Character.Structures.Model -> Maybe Character.Structures.Model
 selectCharacter id character =
     if character.id == id then
         Just character
     else
-        Nothing
+        Maybe.Nothing
 
 
-characterInLocation : Character.Id -> Model -> Maybe Character.Model
+characterInLocation : Character.Structures.Id -> Model -> Maybe Character.Structures.Model
 characterInLocation id location =
     Maybe.oneOf <| List.map (selectCharacter id) location.characters

@@ -1,65 +1,76 @@
 module RPG exposing (..)
 
 import Html.App as App
+import Platform.Cmd
 import Html exposing (..)
-import Character
+import Character.Structures
+import Character.AI.Parrot exposing(..)
 import String
 import Location exposing (..)
 import Direction exposing (..)
 import Dict exposing (..)
+import Time exposing(..)
 import History
 import History.Entry as HistoryEntry
 import Input
 import LookAt exposing (..)
 import Item
+
 import Command
 import Command.Parser
 
 
 main : Program Never
 main =
-    App.beginnerProgram { model = model, view = view, update = update }
+    App.program  { init = init, update = update, subscriptions = subscriptions, view = view }
 
 
 type alias Model =
-    { playerId : (Location.Id, Character.Id)
+    { playerId : (Location.Id, Character.Structures.Id)
     , history : History.Model
     , input : Input.Model
     , locations : Dict Location.Id Location.Model
     }
 
 
-model : Model
-model =
+init : (Model, Cmd Msg)
+init =
     let
         player =
-            Character.Model "24242-2342342-2342342-32" "Szaq" Character.Human [] Character.ThisPlayer
+            Character.Structures.Model "24242-2342342-2342342-32" "Szaq" Character.Structures.Human [] Character.Structures.ThisPlayer
+
+        parrot =
+            Character.Structures.Model "24242-2342342-2342342-11" "Parrot" (Character.Structures.Animal "Parrot") [] (Character.Structures.AI parrotAI)
+
         locations =
-            (Dict.insert 0 <| Location.Model "South Room" "Your very personal room in the south, which you like" [ ( Direction.North, 1 ) ] [ Item.Model "Candle" "Ordinary candle making light where is darkness" ] [player]) <|
+            (Dict.insert 0 <| Location.Model "South Room" "Your very personal room in the south, which you like" [ ( Direction.North, 1 ) ] [ Item.Model "Candle" "Ordinary candle making light where is darkness" ] [player, parrot]) <|
                 (Dict.insert 1 <| Location.Model "North Room" "Your very personal room in the north, which you like" [ ( Direction.South, 0 ) ] [] []) <|
                     Dict.empty
 
-        
+
 
         initialHistory =
             [ HistoryEntry.information "Welcome in the madness" ]
     in
-        Model (0, "24242-2342342-2342342-32") initialHistory "" locations
+        (Model (0, "24242-2342342-2342342-32") initialHistory "" locations, Cmd.none)
 
 
 type Msg
     = History History.Msg
     | Input Input.Msg
+    | Tick Time
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
         Input inputMsg ->
-            handleInput inputMsg model
+            (handleInput inputMsg model, Cmd.none)
 
         History historyMsg ->
-            { model | history = History.update historyMsg model.history }
+            ({ model | history = History.update historyMsg model.history }, Cmd.none)
+
+        Tick newTime -> ({model | locations = locationsAfterTickInLocation newTime (fst model.playerId) model.locations}, Cmd.none)
 
 
 view : Model -> Html Msg
@@ -74,6 +85,8 @@ view model = let player = currentPlayer model
                     ]
 
 
+subscriptions: Model -> Sub Msg
+subscriptions model = Time.every second Tick
 
 ------------------------------------------------------------------
 ------------------------- Input handling -------------------------
@@ -139,10 +152,10 @@ goTo direction model =
     case exitInCurrentLocation direction model of
         Just newLocationId ->
             let
-                playerId = 
+                playerId =
                     snd model.playerId
 
-                oldLocationId = 
+                oldLocationId =
                     fst model.playerId
 
                 updatedLocations = locationsWithMovedCharacter playerId oldLocationId newLocationId model.locations
@@ -151,7 +164,7 @@ goTo direction model =
                     Maybe.map (\updatedLocations -> { model | playerId = (newLocationId, playerId), locations = updatedLocations }) updatedLocations
 
                 description =
-                    describeLocation (modelWithNewLocation `Maybe.andThen` currentLocation) 
+                    describeLocation (modelWithNewLocation `Maybe.andThen` currentLocation)
             in
                 Maybe.map (\modelWithNewLocation -> addInformationToHistory modelWithNewLocation description) modelWithNewLocation
                 |> Maybe.withDefault (addInformationToHistory model "You can't go there")
@@ -211,11 +224,12 @@ describeItem item =
 --------------------------- Player Helpers ------------------------
 ------------------------------------------------------------------
 
-currentPlayer: Model -> Maybe Character.Model
+currentPlayer: Model -> Maybe Character.Structures.Model
 currentPlayer model = let
                          location = Dict.get (fst model.playerId) model.locations
                          in
                          location `Maybe.andThen` (characterInLocation <| snd model.playerId)
+
 
 ------------------------------------------------------------------
 --------------------------- Location Helpers ------------------------
@@ -284,7 +298,7 @@ itemInCurrentLocation name model =
 
 {-| Get item by name from some character's inventory
 -}
-itemInCharacterInventory : String -> Character.Model -> Maybe Item.Model
+itemInCharacterInventory : String -> Character.Structures.Model -> Maybe Item.Model
 itemInCharacterInventory name character =
     selectItem name character.items
 
