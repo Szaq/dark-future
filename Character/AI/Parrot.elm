@@ -1,6 +1,6 @@
 module Character.AI.Parrot exposing(..)
 
-import Character.AI.Structures exposing (..)
+import Character.AI.Model exposing (..)
 import Character.AI exposing (..)
 
 import Time exposing(..)

@@ -1,4 +1,4 @@
-module Character.AI.Structures exposing(..)
+module Character.AI.Model exposing(..)
 
 import Time exposing(..)
 

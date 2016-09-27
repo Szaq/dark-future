@@ -3,7 +3,7 @@ module RPG exposing (..)
 import Html.App as App
 import Platform.Cmd
 import Html exposing (..)
-import Character.Structures
+import Character.Model
 import Character.AI.Parrot exposing(..)
 import String
 import Location exposing (..)
@@ -26,7 +26,7 @@ main =
 
 
 type alias Model =
-    { playerId : (Location.Id, Character.Structures.Id)
+    { playerId : (Location.Id, Character.Model.Id)
     , history : History.Model
     , input : Input.Model
     , locations : Dict Location.Id Location.Model
@@ -37,10 +37,10 @@ init : (Model, Cmd Msg)
 init =
     let
         player =
-            Character.Structures.Model "24242-2342342-2342342-32" "Szaq" Character.Structures.Human [] Character.Structures.ThisPlayer
+            Character.Model.Model "24242-2342342-2342342-32" "Szaq" Character.Model.Human [] Character.Model.ThisPlayer
 
         parrot =
-            Character.Structures.Model "24242-2342342-2342342-11" "Parrot" (Character.Structures.Animal "Parrot") [] (Character.Structures.AI parrotAI)
+            Character.Model.Model "24242-2342342-2342342-11" "Parrot" (Character.Model.Animal "Parrot") [] (Character.Model.AI parrotAI)
 
         locations =
             (Dict.insert 0 <| Location.Model "South Room" "Your very personal room in the south, which you like" [ ( Direction.North, 1 ) ] [ Item.Model "Candle" "Ordinary candle making light where is darkness" ] [player, parrot]) <|
@@ -224,7 +224,7 @@ describeItem item =
 --------------------------- Player Helpers ------------------------
 ------------------------------------------------------------------
 
-currentPlayer: Model -> Maybe Character.Structures.Model
+currentPlayer: Model -> Maybe Character.Model.Model
 currentPlayer model = let
                          location = Dict.get (fst model.playerId) model.locations
                          in
@@ -298,7 +298,7 @@ itemInCurrentLocation name model =
 
 {-| Get item by name from some character's inventory
 -}
-itemInCharacterInventory : String -> Character.Structures.Model -> Maybe Item.Model
+itemInCharacterInventory : String -> Character.Model.Model -> Maybe Item.Model
 itemInCharacterInventory name character =
     selectItem name character.items
 

@@ -3,7 +3,8 @@ module Location exposing (..)
 import Direction exposing (..)
 import Item
 import Character
-import Character.Structures exposing(..)
+import Character.Model exposing(..)
+import Character.Msg exposing(..)
 import Dict
 import Time
 
@@ -21,16 +22,16 @@ type alias Model =
     , description : String
     , exits : DirectionMap Id
     , items : List Item.Model
-    , characters : List Character.Structures.Model
+    , characters : List Character.Model.Model
     }
 
 
-locationWithAddedCharacter : Character.Structures.Model -> Model -> Model
+locationWithAddedCharacter : Character.Model.Model -> Model -> Model
 locationWithAddedCharacter character location =
     { location | characters = location.characters ++ [ character ] }
 
 
-locationWithRemovedCharacter : Character.Structures.Model -> Model -> Model
+locationWithRemovedCharacter : Character.Model.Model -> Model -> Model
 locationWithRemovedCharacter character location =
     let
         notEqual evaluatedCharacter =
@@ -39,7 +40,7 @@ locationWithRemovedCharacter character location =
         { location | characters = List.filter notEqual location.characters }
 
 
-locationsWithMovedCharacter : Character.Structures.Id -> Id -> Id -> Locations -> Maybe (Locations)
+locationsWithMovedCharacter : Character.Model.Id -> Id -> Id -> Locations -> Maybe (Locations)
 locationsWithMovedCharacter characterId oldLocationId newLocationId locations =
     let
         oldLocation =
@@ -75,11 +76,11 @@ locationsAfterTickInLocation time id locations =
 
 locationAfterTick: Time.Time -> Model -> Model
 locationAfterTick time location =
-    let characterTick character = Character.update (Character.Structures.Tick time) character
+    let characterTick character = Character.update (Character.Msg.Tick time) character
     in { location | characters = List.map (fst << characterTick) location.characters }
 
 
-selectCharacter : Character.Structures.Id -> Character.Structures.Model -> Maybe Character.Structures.Model
+selectCharacter : Character.Model.Id -> Character.Model.Model -> Maybe Character.Model.Model
 selectCharacter id character =
     if character.id == id then
         Just character
@@ -87,6 +88,6 @@ selectCharacter id character =
         Maybe.Nothing
 
 
-characterInLocation : Character.Structures.Id -> Model -> Maybe Character.Structures.Model
+characterInLocation : Character.Model.Id -> Model -> Maybe Character.Model.Model
 characterInLocation id location =
     Maybe.oneOf <| List.map (selectCharacter id) location.characters

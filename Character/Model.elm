@@ -1,8 +1,8 @@
-module Character.Structures exposing(..)
+module Character.Model exposing(..)
 
 import Item
 import Time
-import Character.AI.Structures
+import Character.AI.Model
 
 type Race
     = Human
@@ -28,20 +28,7 @@ type Loudness
     | Scream
 
 
-type Msg
-    = Said Model Loudness String
-    | Tick Time.Time
-
-
 type Controller
     = ThisPlayer
     | OtherPlayer
-    | AI Character.AI.Structures.Model
-
-
-type OutMsg
-    = Nothing
-    | Say (Maybe Model) Loudness String
-    | Pick String
-    | Drop String
-    | Go String
+    | AI Character.AI.Model.Model
