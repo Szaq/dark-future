@@ -1,4 +1,4 @@
-module Character.AI exposing(..)
+module Character.AI.Functions exposing(..)
 
 import Character.AI.Model exposing(..)
 import Character.Msg exposing(..)
