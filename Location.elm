@@ -2,36 +2,36 @@ module Location exposing (..)
 
 import Direction exposing (..)
 import Item
-import Character
+import Character.Functions exposing(..)
 import Character.Model exposing(..)
 import Character.Msg exposing(..)
 import Dict
 import Time
 
 
-type alias Id =
+type alias LocationId =
     Int
 
 
 type alias Locations =
-    Dict.Dict Int Model
+    Dict.Dict Int LocationModel
 
 
-type alias Model =
+type alias LocationModel =
     { name : String
     , description : String
-    , exits : DirectionMap Id
+    , exits : DirectionMap LocationId
     , items : List Item.Model
-    , characters : List Character.Model.Model
+    , characters : List CharacterModel
     }
 
 
-locationWithAddedCharacter : Character.Model.Model -> Model -> Model
+locationWithAddedCharacter : CharacterModel -> LocationModel -> LocationModel
 locationWithAddedCharacter character location =
     { location | characters = location.characters ++ [ character ] }
 
 
-locationWithRemovedCharacter : Character.Model.Model -> Model -> Model
+locationWithRemovedCharacter : CharacterModel -> LocationModel -> LocationModel
 locationWithRemovedCharacter character location =
     let
         notEqual evaluatedCharacter =
@@ -40,7 +40,7 @@ locationWithRemovedCharacter character location =
         { location | characters = List.filter notEqual location.characters }
 
 
-locationsWithMovedCharacter : Character.Model.Id -> Id -> Id -> Locations -> Maybe (Locations)
+locationsWithMovedCharacter : CharacterId -> LocationId -> LocationId -> Locations -> Maybe (Locations)
 locationsWithMovedCharacter characterId oldLocationId newLocationId locations =
     let
         oldLocation =
@@ -67,20 +67,20 @@ locationsWithMovedCharacter characterId oldLocationId newLocationId locations =
             updatedOldLocation
 
 
-locationsAfterTickInLocation: Time.Time -> Id -> Locations -> Locations
+locationsAfterTickInLocation: Time.Time -> LocationId -> Locations -> Locations
 locationsAfterTickInLocation time id locations =
       let updatedLocation = Maybe.map (locationAfterTick time) (Dict.get id locations)
 
       in  Maybe.map (\location -> Dict.insert id location locations) updatedLocation
           |> Maybe.withDefault locations
 
-locationAfterTick: Time.Time -> Model -> Model
+locationAfterTick: Time.Time -> LocationModel -> LocationModel
 locationAfterTick time location =
-    let characterTick character = Character.update (Character.Msg.Tick time) character
+    let characterTick character = update (Character.Msg.Tick time) character
     in { location | characters = List.map (fst << characterTick) location.characters }
 
 
-selectCharacter : Character.Model.Id -> Character.Model.Model -> Maybe Character.Model.Model
+selectCharacter : CharacterId -> CharacterModel -> Maybe CharacterModel
 selectCharacter id character =
     if character.id == id then
         Just character
@@ -88,6 +88,6 @@ selectCharacter id character =
         Maybe.Nothing
 
 
-characterInLocation : Character.Model.Id -> Model -> Maybe Character.Model.Model
+characterInLocation : CharacterId -> LocationModel -> Maybe CharacterModel
 characterInLocation id location =
     Maybe.oneOf <| List.map (selectCharacter id) location.characters

@@ -4,5 +4,5 @@ import Time exposing(..)
 
 type Behavior = Friendly | Neutral | Aggresive
 
-type Model = Model { behavior: Behavior
-                   , tickFunc: Time -> Model -> Model}
+type AIModel = AIModel { behavior: Behavior
+                   , tickFunc: Time -> AIModel -> AIModel}

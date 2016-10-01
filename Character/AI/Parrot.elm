@@ -5,9 +5,9 @@ import Character.AI.Functions exposing (..)
 
 import Time exposing(..)
 
-parrotAI: Model
+parrotAI: AIModel
 parrotAI =
     aiWithTick parrotTick defaultAI
 
-parrotTick: Time -> Model -> Model
+parrotTick: Time -> AIModel -> AIModel
 parrotTick time model = model

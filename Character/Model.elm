@@ -1,8 +1,7 @@
 module Character.Model exposing(..)
 
 import Item
-import Time
-import Character.AI.Model
+import Character.AI.Model exposing (..)
 
 type Race
     = Human
@@ -11,10 +10,10 @@ type Race
     | Orc
     | Animal String
 
-type alias Id = String
+type alias CharacterId = String
 
-type alias Model =
-    { id: Id
+type alias CharacterModel =
+    { id: CharacterId
     , name : String
     , race : Race
     , items : List Item.Model
@@ -31,4 +30,4 @@ type Loudness
 type Controller
     = ThisPlayer
     | OtherPlayer
-    | AI Character.AI.Model.Model
+    | AI AIModel

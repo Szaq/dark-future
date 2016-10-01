@@ -3,7 +3,7 @@ module RPG exposing (..)
 import Html.App as App
 import Platform.Cmd
 import Html exposing (..)
-import Character.Model
+import Character.Model exposing (..)
 import Character.AI.Parrot exposing(..)
 import String
 import Location exposing (..)
@@ -26,10 +26,10 @@ main =
 
 
 type alias Model =
-    { playerId : (Location.Id, Character.Model.Id)
+    { playerId : (LocationId, CharacterId)
     , history : History.Model
     , input : Input.Model
-    , locations : Dict Location.Id Location.Model
+    , locations : Dict LocationId LocationModel
     }
 
 
@@ -37,14 +37,14 @@ init : (Model, Cmd Msg)
 init =
     let
         player =
-            Character.Model.Model "24242-2342342-2342342-32" "Szaq" Character.Model.Human [] Character.Model.ThisPlayer
+            CharacterModel "24242-2342342-2342342-32" "Szaq" Human [] ThisPlayer
 
         parrot =
-            Character.Model.Model "24242-2342342-2342342-11" "Parrot" (Character.Model.Animal "Parrot") [] (Character.Model.AI parrotAI)
+            CharacterModel "24242-2342342-2342342-11" "Parrot" (Animal "Parrot") [] (AI parrotAI)
 
         locations =
-            (Dict.insert 0 <| Location.Model "South Room" "Your very personal room in the south, which you like" [ ( Direction.North, 1 ) ] [ Item.Model "Candle" "Ordinary candle making light where is darkness" ] [player, parrot]) <|
-                (Dict.insert 1 <| Location.Model "North Room" "Your very personal room in the north, which you like" [ ( Direction.South, 0 ) ] [] []) <|
+            (Dict.insert 0 <| LocationModel "South Room" "Your very personal room in the south, which you like" [ ( North, 1 ) ] [ Item.Model "Candle" "Ordinary candle making light where is darkness" ] [player, parrot]) <|
+                (Dict.insert 1 <| LocationModel "North Room" "Your very personal room in the north, which you like" [ ( South, 0 ) ] [] []) <|
                     Dict.empty
 
 
@@ -188,7 +188,7 @@ addInformationToHistory model text =
         { model | history = History.update (History.Add historyEntry) model.history }
 
 
-describeLocation : Maybe Location.Model -> String
+describeLocation : Maybe LocationModel -> String
 describeLocation location =
     case location of
         Just location ->
@@ -224,7 +224,7 @@ describeItem item =
 --------------------------- Player Helpers ------------------------
 ------------------------------------------------------------------
 
-currentPlayer: Model -> Maybe Character.Model.Model
+currentPlayer: Model -> Maybe CharacterModel
 currentPlayer model = let
                          location = Dict.get (fst model.playerId) model.locations
                          in
@@ -238,7 +238,7 @@ currentPlayer model = let
 
 {-| Get current location from model
 -}
-currentLocation : Model -> Maybe Location.Model
+currentLocation : Model -> Maybe LocationModel
 currentLocation model =
     Dict.get (fst model.playerId) model.locations
 
@@ -250,7 +250,7 @@ currentLocation model =
 
 {-| Get an exist in specified direction from current location from model
 -}
-exitInCurrentLocation : Direction -> Model -> Maybe Location.Id
+exitInCurrentLocation : Direction -> Model -> Maybe LocationId
 exitInCurrentLocation direction model =
     case currentLocation model of
         Just location ->
@@ -281,7 +281,7 @@ selectItem name items =
 
 {-| Get item by name from a location
 -}
-itemInLocation : String -> Location.Model -> Maybe Item.Model
+itemInLocation : String -> LocationModel -> Maybe Item.Model
 itemInLocation name location =
     selectItem name location.items
 
@@ -298,7 +298,7 @@ itemInCurrentLocation name model =
 
 {-| Get item by name from some character's inventory
 -}
-itemInCharacterInventory : String -> Character.Model.Model -> Maybe Item.Model
+itemInCharacterInventory : String -> CharacterModel -> Maybe Item.Model
 itemInCharacterInventory name character =
     selectItem name character.items
 

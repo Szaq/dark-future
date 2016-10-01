@@ -5,19 +5,19 @@ import Character.Msg exposing(..)
 
 import Time exposing(..)
 
-update: Msg -> Character.AI.Model.Model -> Character.AI.Model.Model
+update: Msg -> AIModel -> AIModel
 update msg model = model
 
-defaultAI: Character.AI.Model.Model
+defaultAI: AIModel
 defaultAI =
-    Character.AI.Model.Model
+    AIModel
       { behavior = Neutral
       , tickFunc = defaultAITick
       }
 
-aiWithTick: (Time -> Character.AI.Model.Model -> Character.AI.Model.Model) -> Character.AI.Model.Model -> Character.AI.Model.Model
+aiWithTick: (Time -> AIModel -> AIModel) -> AIModel -> AIModel
 aiWithTick tickFunc model = case model of
-    Model model -> Character.AI.Model.Model {model | tickFunc = tickFunc}
+    AIModel model -> AIModel {model | tickFunc = tickFunc}
 
-defaultAITick: Time -> Character.AI.Model.Model -> Character.AI.Model.Model
+defaultAITick: Time -> AIModel -> AIModel
 defaultAITick time model = model
